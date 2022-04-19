@@ -73,7 +73,9 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
     """
 
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
-
+    
+    SCREEN_DIM = 500
+    
     def __init__(self):
         self.gravity = 9.8
         self.masscart = 1.0
@@ -203,7 +205,7 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
 
         x = self.state
 
-        if self.screen is None:
+        if self.screen is None and mode=='human':
             pygame.init()
             pygame.display.init()
             self.screen = pygame.display.set_mode((screen_width, screen_height))
@@ -255,19 +257,27 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         gfxdraw.hline(self.surf, 0, screen_width, carty, (0, 0, 0))
 
         self.surf = pygame.transform.flip(self.surf, False, True)
-        self.screen.blit(self.surf, (0, 0))
         if mode == "human":
+            self.screen.blit(self.surf, (0, 0))
             pygame.event.pump()
             self.clock.tick(self.metadata["render_fps"])
             pygame.display.flip()
 
         if mode == "rgb_array":
-            return np.transpose(
-                np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2)
-            )
+            self.surf.blit(self.surf, (0,0))
+            return self._create_image_array(self.surf, (self.SCREEN_DIM, 
+                                                        self.SCREEN_DIM))
         else:
             return self.isopen
+    
+    def _create_image_array(self, screen, size):
+        import pygame
 
+        scaled_screen = pygame.transform.smoothscale(screen, size)
+        return np.transpose(
+            np.array(pygame.surfarray.pixels3d(scaled_screen)), axes=(1, 0, 2)
+        )
+    
     def close(self):
         if self.screen is not None:
             import pygame
